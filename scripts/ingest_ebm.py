@@ -23,12 +23,13 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     df = parse_ebm_xml_to_dataframe(str(xml_path))
-    df = filter_df_by_fachgruppe(df)
+    # Use all documents from the full EBM (do not filter by Fachgruppe)
     if df.empty:
         raise ValueError(
-            "No Fachgruppe 001 documents found in data/ebm.xml. "
-            "Please provide a full KBV EBM XML with Fachgruppe 001 entries."
+            "No documents found in data/ebm.xml. "
+            "Please provide a valid KBV EBM XML file."
         )
+    print(f"Processing {len(df)} EBM documents...")
     df.to_parquet(output_dir / "ebm.parquet", index=False)
     df.to_json(output_dir / "ebm.jsonl", orient="records", lines=True, force_ascii=False)
 

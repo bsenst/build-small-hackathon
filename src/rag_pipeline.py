@@ -133,12 +133,13 @@ def build_pipeline_from_paths(xml_path: str | Path, store_dir: str | Path, embed
         store = EbmVectorStore.load(store_dir)
     else:
         df = parse_ebm_xml_to_dataframe(str(xml_path))
-        df = filter_df_by_fachgruppe(df)
+        # Use all documents from the full EBM (do not filter by Fachgruppe)
         if df.empty:
             raise ValueError(
-                "No Fachgruppe 001 documents found in data/ebm.xml. "
-                "Please provide a full KBV EBM XML with Fachgruppe 001 entries."
+                "No documents found in data/ebm.xml. "
+                "Please provide a valid KBV EBM XML file."
             )
+        print(f"Building FAISS store from {len(df)} EBM documents...")
         documents = dataframe_to_documents(df)
         store, embeddings = EbmVectorStore.build(documents, embedding_model=embedding_model)
         store.save(store_dir, embeddings=embeddings)

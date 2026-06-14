@@ -148,7 +148,7 @@ def browse_chapters() -> list[str]:
         chapters = pipeline.list_chapters()
     elif DATA_XML.exists():
         df = parse_ebm_xml_to_dataframe(str(DATA_XML))
-        df = filter_df_by_fachgruppe(df)
+        # Use all documents from the full EBM
         chapters = sorted(
             {
                 str(value)
