@@ -42,7 +42,17 @@ class EbmVectorStore:
             document_to_search_text(EbmDocument(**{k: v for k, v in doc.items() if k != "search_text"}))
             for doc in docs
         ]
+        if not texts:
+            raise ValueError(
+                "Cannot build vector store: no documents available. "
+                "Check that data/ebm.xml contains Fachgruppe 001 entries or remove the Fachgruppe-001 filter."
+            )
         embeddings = embedding_model.encode(texts)
+        if embeddings.ndim != 2 or embeddings.shape[0] == 0:
+            raise ValueError(
+                "Embedding model returned invalid embeddings. "
+                "Expected a 2D array with one embedding per document."
+            )
         index = faiss.IndexFlatIP(embeddings.shape[1])
         index.add(embeddings)
         store = cls(index=index, documents=docs, embedding_model_name=embedding_model.model_name)

@@ -24,6 +24,11 @@ def main() -> None:
 
     df = parse_ebm_xml_to_dataframe(str(xml_path))
     df = filter_df_by_fachgruppe(df)
+    if df.empty:
+        raise ValueError(
+            "No Fachgruppe 001 documents found in data/ebm.xml. "
+            "Please provide a full KBV EBM XML with Fachgruppe 001 entries."
+        )
     df.to_parquet(output_dir / "ebm.parquet", index=False)
     df.to_json(output_dir / "ebm.jsonl", orient="records", lines=True, force_ascii=False)
 

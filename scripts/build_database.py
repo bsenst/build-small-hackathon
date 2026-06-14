@@ -26,6 +26,11 @@ def main() -> None:
 
     df = parse_ebm_xml_to_dataframe(str(xml_path))
     df = filter_df_by_fachgruppe(df)
+    if df.empty:
+        raise ValueError(
+            "No Fachgruppe 001 documents found in data/ebm.xml. "
+            "Please provide a full KBV EBM XML with Fachgruppe 001 entries."
+        )
     documents = dataframe_to_documents(df)
     store, embeddings = EbmVectorStore.build(documents, embedding_model=embedding_model)
     store.save(store_dir, embeddings=embeddings)

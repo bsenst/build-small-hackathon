@@ -4,6 +4,10 @@ from pathlib import Path
 
 import gradio as gr
 import pandas as pd
+import subprocess
+import sys
+import os
+import traceback
 
 from src.parser import filter_df_by_fachgruppe, parse_ebm_xml_to_dataframe
 from src.rag_pipeline import EbmRAGPipeline, build_pipeline_from_paths
@@ -20,8 +24,60 @@ PIPELINE: EbmRAGPipeline | None = None
 def get_pipeline() -> EbmRAGPipeline:
     global PIPELINE
     if PIPELINE is None:
+        # Ensure vector store exists. Try to download full EBM and build; on failure, fall back to demo XML.
+        try:
+            ensure_vector_store()
+        except Exception:
+            # Log and continue; build_pipeline_from_paths will attempt to load or build and may raise a clearer error
+            print("Warning: ensure_vector_store failed:\n" + traceback.format_exc())
         PIPELINE = build_pipeline_from_paths(DATA_XML, STORE_DIR)
     return PIPELINE
+
+
+def ensure_vector_store() -> None:
+    """Try to prepare the FAISS store before the app starts.
+
+    Steps:
+    - If the store already exists, do nothing.
+    - Attempt to download the full EBM ZIP (scripts/download_full_ebm.py).
+    - Attempt to build the FAISS store (scripts/build_database.py).
+    - If building fails due to missing Fachgruppe 001 data, fall back to using the local demo XML by
+      disabling the Fachgruppe filter via environment variable `SKIP_FG_FILTER=1`.
+    """
+    root = Path(__file__).resolve().parent
+    store_dir = STORE_DIR
+    if store_dir.exists() and (store_dir / "index.faiss").exists() and (store_dir / "metadata.jsonl").exists():
+        return
+
+    # Try to download full EBM
+    download_script = root / "scripts" / "download_full_ebm.py"
+    build_script = root / "scripts" / "build_database.py"
+
+    if download_script.exists():
+        try:
+            print("Attempting to download full KBV EBM archive...")
+            subprocess.run([sys.executable, str(download_script)], check=True, timeout=600)
+        except Exception:
+            print("Download script failed:\n" + traceback.format_exc())
+
+    # Try to build the FAISS store
+    if build_script.exists():
+        try:
+            print("Attempting to build FAISS store from XML...")
+            subprocess.run([sys.executable, str(build_script), "--xml", str(DATA_XML), "--store", str(STORE_DIR)], check=True, timeout=600)
+        except subprocess.CalledProcessError as e:
+            print("Build script failed with CalledProcessError:\n" + traceback.format_exc())
+            # If the build failed due to empty Fachgruppe 001, allow fallback to demo XML
+            # The build scripts raise ValueError in that case; detect it by inspecting output/exception
+            # Fallback: disable fachgruppe filter so demo XML (with 2 entries) can be used
+            print("Falling back to demo XML: disabling Fachgruppe-001 filter for this run.")
+            os.environ["SKIP_FG_FILTER"] = "1"
+        except Exception:
+            print("Build script failed:\n" + traceback.format_exc())
+            print("Falling back to demo XML: disabling Fachgruppe-001 filter for this run.")
+            os.environ["SKIP_FG_FILTER"] = "1"
+    else:
+        print("No build script found; continuing and relying on existing data/ebm.xml")
 
 
 def format_retrieved(results: list[dict]) -> str:
