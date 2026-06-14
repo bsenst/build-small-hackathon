@@ -4,12 +4,9 @@ from pathlib import Path
 
 import gradio as gr
 import pandas as pd
-import subprocess
 import sys
-import os
-import traceback
 
-from src.parser import filter_df_by_fachgruppe, parse_ebm_xml_to_dataframe
+from src.parser import parse_ebm_xml_to_dataframe
 from src.rag_pipeline import EbmRAGPipeline, build_pipeline_from_paths
 
 
@@ -30,55 +27,27 @@ def get_pipeline() -> EbmRAGPipeline:
 
 
 def ensure_vector_store() -> str:
-    """Prepare the FAISS store before the app starts.
-
-    Steps:
-    - If the store already exists, do nothing.
-    - Download the full EBM ZIP (scripts/download_full_ebm.py).
-    - Build the FAISS store (scripts/build_database.py).
+    """Validate that the pre-built FAISS vector store exists.
+    
+    The vector store should be pre-built during Docker image build time.
+    This function just validates it's present and accessible.
     
     Raises:
-    - RuntimeError if download or build fails. No fallback to dummy data.
+    - RuntimeError if the store is missing or incomplete.
     """
     global DATA_SOURCE_STATUS
-    root = Path(__file__).resolve().parent
     store_dir = STORE_DIR
     
     if store_dir.exists() and (store_dir / "index.faiss").exists() and (store_dir / "metadata.jsonl").exists():
-        # Existing store present
-        print("✓ FAISS store already exists, using it.")
+        print("✓ Vector store found and validated.")
         DATA_SOURCE_STATUS = "full"
         return DATA_SOURCE_STATUS
-
-    download_script = root / "scripts" / "download_full_ebm.py"
-    build_script = root / "scripts" / "build_database.py"
-
-    # Download the full EBM
-    if not download_script.exists():
-        raise RuntimeError(f"Download script not found: {download_script}")
     
-    print("📥 Downloading full KBV EBM archive...")
-    result = subprocess.run([sys.executable, str(download_script)], capture_output=True, text=True, timeout=600)
-    if result.returncode != 0:
-        raise RuntimeError(f"EBM download failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
-    print(result.stdout)
-
-    # Build the FAISS store
-    if not build_script.exists():
-        raise RuntimeError(f"Build script not found: {build_script}")
-    
-    print("🔨 Building FAISS vector store from full EBM...")
-    result = subprocess.run(
-        [sys.executable, str(build_script), "--xml", str(DATA_XML), "--store", str(STORE_DIR)],
-        capture_output=True, text=True, timeout=1200
+    raise RuntimeError(
+        f"Vector store not found at {store_dir}. "
+        "The store should have been built during Docker image build. "
+        "Ensure the Dockerfile preprocessing steps completed successfully."
     )
-    if result.returncode != 0:
-        raise RuntimeError(f"FAISS store build failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
-    print(result.stdout)
-    
-    print("✓ Vector store successfully created from full EBM.")
-    DATA_SOURCE_STATUS = "full"
-    return DATA_SOURCE_STATUS
 
 
 def format_retrieved(results: list[dict]) -> str:
