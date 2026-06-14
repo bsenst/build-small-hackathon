@@ -109,11 +109,6 @@ def parse_ebm_xml_to_dataframe(xml_path: str) -> pd.DataFrame:
 
 
 def filter_df_by_fachgruppe(df: pd.DataFrame, fachgruppe: str = "001") -> pd.DataFrame:
-    # Allow skipping the fachgruppe filter (useful for demo XML fallback)
-    import os
-
-    if os.environ.get("SKIP_FG_FILTER") == "1":
-        return df.reset_index(drop=True)
-
+    """Filter DataFrame to include only rows where the specified Fachgruppe is present."""
     return df[df["fachgruppen"].apply(lambda x: isinstance(x, list) and fachgruppe in x)].reset_index(drop=True)
 

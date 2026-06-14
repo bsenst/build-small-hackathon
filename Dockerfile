@@ -14,17 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy source code and scripts early for preprocessing
+# Copy all source code, scripts, and data needed for runtime initialization
 COPY src/ /app/src/
 COPY scripts/ /app/scripts/
-COPY data/ebm_sample.xml /app/data/ebm.xml
-
-# Pre-build the vector store during image build to enable instant startup
-RUN mkdir -p /app/data && \
-    python scripts/download_full_ebm.py && \
-    python scripts/build_database.py --xml /app/data/ebm.xml --store /app/data/vector_store
-
-# Copy remaining files (Gradio app and configs)
+COPY data/ /app/data/
 COPY app.py /app/
 COPY README.md /app/
 

@@ -11,6 +11,8 @@ build/
 *.pyo
 *.pyd
 *.egg-info/
+data/sdebm_extracted/
+data/SDEBM_V1.61.zip
 data/processed/
 data/vector_store/
 data/*.parquet

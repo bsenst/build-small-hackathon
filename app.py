@@ -4,7 +4,9 @@ from pathlib import Path
 
 import gradio as gr
 import pandas as pd
+import subprocess
 import sys
+import traceback
 
 from src.parser import parse_ebm_xml_to_dataframe
 from src.rag_pipeline import EbmRAGPipeline, build_pipeline_from_paths
@@ -27,27 +29,83 @@ def get_pipeline() -> EbmRAGPipeline:
 
 
 def ensure_vector_store() -> str:
-    """Validate that the pre-built FAISS vector store exists.
+    """Ensure the FAISS vector store is ready.
     
-    The vector store should be pre-built during Docker image build time.
-    This function just validates it's present and accessible.
+    Steps:
+    1. If store already exists, use it.
+    2. Try to download full EBM and build the store from it with Fachgruppe 001 filter.
+    3. If download/build fails, fall back to dummy XML.
     
-    Raises:
-    - RuntimeError if the store is missing or incomplete.
+    Returns:
+    - Status string: "full" (built from full EBM), "store" (reused), or "demo" (fallback)
     """
     global DATA_SOURCE_STATUS
     store_dir = STORE_DIR
     
+    # Check if store already exists
     if store_dir.exists() and (store_dir / "index.faiss").exists() and (store_dir / "metadata.jsonl").exists():
-        print("✓ Vector store found and validated.")
-        DATA_SOURCE_STATUS = "full"
+        print("✓ Vector store found, using it.")
+        DATA_SOURCE_STATUS = "store"
         return DATA_SOURCE_STATUS
+
+    root = Path(__file__).resolve().parent
+    download_script = root / "scripts" / "download_full_ebm.py"
+    build_script = root / "scripts" / "build_database.py"
     
-    raise RuntimeError(
-        f"Vector store not found at {store_dir}. "
-        "The store should have been built during Docker image build. "
-        "Ensure the Dockerfile preprocessing steps completed successfully."
-    )
+    # Path to extracted full EBM (if download succeeds)
+    extracted_xml_path = root / "data" / "sdebm_extracted" / "XML" / "850_01.61_74_tf2017q4_nr1.xml"
+    dummy_xml_path = DATA_XML
+
+    # Try to download full EBM
+    download_success = False
+    if download_script.exists():
+        try:
+            print("📥 Downloading full KBV EBM archive...")
+            result = subprocess.run([sys.executable, str(download_script)], capture_output=True, text=True, timeout=600)
+            if result.returncode == 0:
+                print(result.stdout)
+                download_success = True
+            else:
+                print(f"⚠️  Download warning:\n{result.stderr}")
+        except Exception as e:
+            print(f"⚠️  Download failed: {e}")
+
+    # Choose XML source: extracted full EBM with Fachgruppe 001 filter, or dummy XML as fallback
+    xml_to_use = dummy_xml_path
+    use_fachgruppe_filter = False
+    
+    if download_success and extracted_xml_path.exists():
+        xml_to_use = extracted_xml_path
+        use_fachgruppe_filter = True
+        print(f"✓ Using downloaded full EBM: {extracted_xml_path}")
+        print("  Applying Fachgruppe 001 filter...")
+    else:
+        print(f"⚠️  Using fallback dummy XML: {dummy_xml_path}")
+
+    # Try to build FAISS store
+    if build_script.exists():
+        try:
+            print("🔨 Building FAISS vector store...")
+            cmd = [sys.executable, str(build_script), "--xml", str(xml_to_use), "--store", str(STORE_DIR)]
+            if use_fachgruppe_filter:
+                cmd.append("--fachgruppe-filter")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1200)
+            if result.returncode == 0:
+                print(result.stdout)
+                data_source = "full" if use_fachgruppe_filter else "demo"
+                DATA_SOURCE_STATUS = data_source
+                print(f"✓ Vector store built successfully from {'full EBM (Fachgruppe 001)' if use_fachgruppe_filter else 'demo data'}.")
+                return DATA_SOURCE_STATUS
+            else:
+                print(f"⚠️  Build failed: {result.stderr}")
+        except Exception as e:
+            print(f"⚠️  Build failed: {e}")
+
+    # Final fallback: use dummy XML without filter
+    print("⚠️  Using demo/fallback XML (sample data)...")
+    DATA_SOURCE_STATUS = "demo"
+    return DATA_SOURCE_STATUS
 
 
 def format_retrieved(results: list[dict]) -> str:
@@ -130,16 +188,14 @@ def browse_chapters() -> list[str]:
     return ["All"] + chapters
 
 def build_app() -> gr.Blocks:
-    # Enforce successful EBM download and vector store build at startup. Fail loudly if it fails.
+    # Initialize EBM data and vector store at startup
     print("\n" + "="*70)
     print("STARTUP: Initializing EBM data and vector store...")
     print("="*70)
     try:
         ensure_vector_store()
     except Exception as e:
-        error_msg = f"FATAL: Failed to prepare EBM data and vector store:\n{str(e)}"
-        print(error_msg)
-        raise RuntimeError(error_msg)
+        print(f"Warning: {traceback.format_exc()}")
     
     with gr.Blocks(
         theme=gr.themes.Soft(
@@ -160,11 +216,13 @@ def build_app() -> gr.Blocks:
         )
 
         # Data source status indicator
-        status_text = "Vollständiges KBV EBM erfolgreich geladen und indexiert."
+        status_text = "Unbekannt"
         if DATA_SOURCE_STATUS == "full":
             status_text = "✓ Vollständiges KBV EBM (heruntergeladen und indexiert)."
         elif DATA_SOURCE_STATUS == "store":
             status_text = "✓ Vektor-Store wiederverwendet (aus vorherigem Durchlauf)."
+        elif DATA_SOURCE_STATUS == "demo":
+            status_text = "⚠️  Demo-Daten (Beispiel-EBM-Einträge)."
         
         gr.Markdown(f"**Status:** {status_text}")
 
