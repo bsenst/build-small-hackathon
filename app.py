@@ -20,6 +20,11 @@ STORE_DIR = ROOT / "data" / "vector_store"
 PIPELINE: EbmRAGPipeline | None = None
 DATA_SOURCE_STATUS: str = "unknown"
 
+APP_THEME = gr.themes.Soft(
+    primary_hue="green",
+    secondary_hue="slate",
+    neutral_hue="slate",
+)
 
 def get_pipeline() -> EbmRAGPipeline:
     global PIPELINE
@@ -187,6 +192,22 @@ def browse_chapters() -> list[str]:
         chapters = []
     return ["All"] + chapters
 
+
+def chat_with_ebm(message: str, history: list[dict[str, str]]) -> tuple[str, list[dict[str, str]]]:
+    """Chat function for the Gradio Chatbot interface."""
+    pipeline = get_pipeline()
+    result = pipeline.answer(message, top_k=5)
+    answer = result["answer"]
+    
+    # Zeige dem Nutzer an, welche Dokumente gefunden wurden, um das Debugging zu erleichtern
+    if result["citations"]:
+        answer += f"\n\n---\n**Gefundene EBM-Quellen:** {', '.join(result['citations'])}"
+
+    # Add to history
+    history.append({"role": "user", "content": message})
+    history.append({"role": "assistant", "content": answer})
+    return "", history
+
 def build_app() -> gr.Blocks:
     # Initialize EBM data and vector store at startup
     print("\n" + "="*70)
@@ -197,13 +218,7 @@ def build_app() -> gr.Blocks:
     except Exception as e:
         print(f"Warning: {traceback.format_exc()}")
     
-    with gr.Blocks(
-        theme=gr.themes.Soft(
-            primary_hue="green",
-            secondary_hue="slate",
-            neutral_hue="slate",
-        ),
-    ) as demo:
+    with gr.Blocks() as demo:
         gr.HTML(
             """
             <div class="hero">
@@ -226,29 +241,64 @@ def build_app() -> gr.Blocks:
         
         gr.Markdown(f"**Status:** {status_text}")
 
-        chapter_choices = browse_chapters()
+        with gr.Tabs():
+            # Chat Tab
+            with gr.TabItem("Chat"):
+                gr.Markdown("### Fragen Sie den EBM Mentor\nStellen Sie Fragen zur EBM und erhalten Sie Antworten basierend auf den lokalen Daten.")
+                with gr.Group():
+                    chatbot = gr.Chatbot(
+                        label="Conversation",
+                        height=400,
+                        show_label=False,
+                    )
+                    with gr.Row():
+                        msg = gr.Textbox(
+                            label="Message",
+                            placeholder="Fragen Sie etwas über die EBM...",
+                            show_label=False,
+                            scale=9,
+                        )
+                        submit_btn = gr.Button("Send", scale=1, variant="primary")
+                    
+                    # Set up event handlers
+                    submit_btn.click(
+                        chat_with_ebm,
+                        inputs=[msg, chatbot],
+                        outputs=[msg, chatbot],
+                    )
+                    msg.submit(
+                        chat_with_ebm,
+                        inputs=[msg, chatbot],
+                        outputs=[msg, chatbot],
+                    )
 
-        with gr.Row():
-            search_query = gr.Textbox(label="Search", placeholder="points, exclusions, title, notes...")
-            chapter = gr.Dropdown(
-                label="Chapter",
-                choices=chapter_choices,
-                value="All",
-                interactive=True,
-            )
-        search_btn = gr.Button("Search", variant="primary")
-        table = gr.Dataframe(
-            headers=["code", "title", "points", "exclusions", "notes"],
-            datatype=["str", "str", "str", "str", "str"],
-            interactive=False,
-            wrap=True,
-            row_count=(5, "dynamic"),
-        )
-        search_btn.click(
-            explore_ebm,
-            inputs=[search_query, chapter],
-            outputs=[table],
-        )
+            # Explore EBM Tab
+            with gr.TabItem("Explore EBM"):
+                gr.Markdown("### EBM durchsuchen\nSuchen Sie nach EBM-Codes, Titeln oder anderen Feldern.")
+                
+                chapter_choices = browse_chapters()
+
+                with gr.Row():
+                    search_query = gr.Textbox(label="Search", placeholder="points, exclusions, title, notes...")
+                    chapter = gr.Dropdown(
+                        label="Chapter",
+                        choices=chapter_choices,
+                        value="All",
+                        interactive=True,
+                    )
+                search_btn = gr.Button("Search", variant="primary")
+                table = gr.Dataframe(
+                    headers=["code", "title", "points", "exclusions", "notes"],
+                    datatype=["str", "str", "str", "str", "str"],
+                    interactive=False,
+                    wrap=True,
+                    row_count=(5, "dynamic"),
+                )
+                search_btn.click(
+                    explore_ebm,
+                    inputs=[search_query, chapter],
+                    outputs=[table],
+                )
 
     return demo
 
@@ -257,4 +307,4 @@ app = build_app()
 
 
 if __name__ == "__main__":
-    app.launch()
+    app.launch(theme=APP_THEME)
