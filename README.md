@@ -1,7 +1,7 @@
 ---
 title: EBM Mentor
 emoji: 🩺
-colorFrom: teal
+colorFrom: green
 colorTo: blue
 sdk: gradio
 app_file: app.py
