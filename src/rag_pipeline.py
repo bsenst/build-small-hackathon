@@ -24,15 +24,15 @@ def _format_context(results: list[dict[str, Any]]) -> str:
         blocks.append(
             "\n".join(
                 [
-                    f"EBM Code: {item.get('code')}",
-                    f"Title: {item.get('title') or ''}",
-                    f"Points: {item.get('points') if item.get('points') is not None else 'Nicht angegeben'}",
-                    f"Chapter: {item.get('chapter_name') or ''}",
-                    f"Description: {item.get('long_text') or item.get('short_text') or ''}",
-                    f"Notes:\n{notes}",
-                    f"Exclusions:\n{exclusions}",
+                    f"EBM-Code: {item.get('code')}",
+                    f"Titel: {item.get('title') or ''}",
+                    f"Punkte: {item.get('points') if item.get('points') is not None else 'Nicht angegeben'}",
+                    f"Kapitel: {item.get('chapter_name') or ''}",
+                    f"Beschreibung: {item.get('long_text') or item.get('short_text') or ''}",
+                    f"Anmerkungen:\n{notes}",
+                    f"Ausschlüsse:\n{exclusions}",
                     f"Fachgruppen: {', '.join(item.get('fachgruppen', [])) or 'Nicht angegeben'}",
-                    f"GKV account types: {', '.join(item.get('gkv_account_types', [])) or 'Nicht angegeben'}",
+                    f"GKV-Kontenarten: {', '.join(item.get('gkv_account_types', [])) or 'Nicht angegeben'}",
                 ]
             )
         )
@@ -74,7 +74,8 @@ class EbmRAGPipeline:
         prompt = ANSWER_PROMPT.format(retrieved_documents=context, user_question=question)
         try:
             generated = self.generator(prompt)[0]["generated_text"].strip()
-        except Exception:
+        except Exception as e:
+            print(f"Error during LLM generation: {e}")
             generated = ""
         answer = generated or NO_ANSWER_TEXT
         confidence = max(0.0, min(1.0, float(retrieved[0].get("confidence", 0.0))))
@@ -101,7 +102,8 @@ class EbmRAGPipeline:
         prompt = CODE_EXPLANATION_PROMPT.format(retrieved_documents=context, user_question=f"Explain EBM code {code}.")
         try:
             generated = self.generator(prompt)[0]["generated_text"].strip()
-        except Exception:
+        except Exception as e:
+            print(f"Error during LLM explanation: {e}")
             generated = ""
         confidence = 1.0
         return {

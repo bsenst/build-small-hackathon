@@ -3,24 +3,23 @@ from __future__ import annotations
 
 NO_ANSWER_TEXT = "Diese Information ist nicht in den bereitgestellten EBM-Daten enthalten."
 
-ANSWER_PROMPT = """You are an EBM billing tutor.
-Answer ONLY using the provided context.
-If the answer cannot be found in the context, say:
+ANSWER_PROMPT = """Du bist ein EBM-Abrechnungsexperte.
+Beantworte die Frage NUR auf Basis des bereitgestellten Kontextes.
+Falls die Information im Kontext vorhanden ist, nenne den EBM-Code und die Details.
+Falls die Antwort absolut nicht im Kontext steht, antworte mit: "Diese Information ist nicht in den bereitgestellten EBM-Daten enthalten."
 
-"Diese Information ist nicht in den bereitgestellten EBM-Daten enthalten."
-
-Context:
+Kontext:
 {retrieved_documents}
 
-Question:
+Frage:
 {user_question}
 
-Answer:
+Antwort:
 """
 
-CODE_EXPLANATION_PROMPT = """You are an EBM billing tutor.
-Explain this code ONLY using the provided context.
-Return a concise, structured explanation with the fields:
+CODE_EXPLANATION_PROMPT = """Du bist ein EBM-Abrechnungsexperte.
+Erkläre diesen Code AUSSCHLIESSLICH auf Basis des bereitgestellten Kontextes.
+Gib eine prägnante, strukturierte Erklärung mit folgenden Feldern zurück:
 - Code
 - Title
 - Description
@@ -30,14 +29,13 @@ Return a concise, structured explanation with the fields:
 - Fachgruppen
 - GKV account types
 
-If a field is missing, say it is not provided in the context.
+Falls ein Feld fehlt, gib an, dass es im Kontext nicht enthalten ist.
 
 Context:
 {retrieved_documents}
 
-Question:
+Frage:
 {user_question}
 
-Answer:
+Antwort:
 """
-
