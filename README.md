@@ -15,6 +15,8 @@ tags:
 
 EBM Mentor is a Retrieval-Augmented Generation assistant for German EBM billing research. It helps physicians, coders, and practice staff search and understand EBM code descriptions, points, exclusions, notes, and eligibility details.
 
+Read more about the project and its development in the blog post: [Medical AI: Building an EBM Assistant](https://huggingface.co/blog/bsenst/medical-ai).
+
 The system is RAG-only:
 
 - `CohereLabs/tiny-aya-water` is used only for answer generation.
