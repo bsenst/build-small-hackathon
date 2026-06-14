@@ -25,74 +25,59 @@ DATA_SOURCE_STATUS: str = "unknown"
 def get_pipeline() -> EbmRAGPipeline:
     global PIPELINE
     if PIPELINE is None:
-        # Ensure vector store exists. Try to download full EBM and build; on failure, fall back to demo XML.
-        try:
-            ensure_vector_store()
-        except Exception:
-            # Log and continue; build_pipeline_from_paths will attempt to load or build and may raise a clearer error
-            print("Warning: ensure_vector_store failed:\n" + traceback.format_exc())
         PIPELINE = build_pipeline_from_paths(DATA_XML, STORE_DIR)
     return PIPELINE
 
 
 def ensure_vector_store() -> str:
-    """Try to prepare the FAISS store before the app starts.
+    """Prepare the FAISS store before the app starts.
 
     Steps:
     - If the store already exists, do nothing.
-    - Attempt to download the full EBM ZIP (scripts/download_full_ebm.py).
-    - Attempt to build the FAISS store (scripts/build_database.py).
-    - If building fails due to missing Fachgruppe 001 data, fall back to using the local demo XML by
-      disabling the Fachgruppe filter via environment variable `SKIP_FG_FILTER=1`.
+    - Download the full EBM ZIP (scripts/download_full_ebm.py).
+    - Build the FAISS store (scripts/build_database.py).
+    
+    Raises:
+    - RuntimeError if download or build fails. No fallback to dummy data.
     """
     global DATA_SOURCE_STATUS
     root = Path(__file__).resolve().parent
     store_dir = STORE_DIR
+    
     if store_dir.exists() and (store_dir / "index.faiss").exists() and (store_dir / "metadata.jsonl").exists():
         # Existing store present
-        DATA_SOURCE_STATUS = "store"
+        print("✓ FAISS store already exists, using it.")
+        DATA_SOURCE_STATUS = "full"
         return DATA_SOURCE_STATUS
 
-    # Try to download full EBM
     download_script = root / "scripts" / "download_full_ebm.py"
     build_script = root / "scripts" / "build_database.py"
 
-    if download_script.exists():
-        try:
-            print("Attempting to download full KBV EBM archive...")
-            subprocess.run([sys.executable, str(download_script)], check=True, timeout=600)
-        except Exception:
-            print("Download script failed:\n" + traceback.format_exc())
+    # Download the full EBM
+    if not download_script.exists():
+        raise RuntimeError(f"Download script not found: {download_script}")
+    
+    print("📥 Downloading full KBV EBM archive...")
+    result = subprocess.run([sys.executable, str(download_script)], capture_output=True, text=True, timeout=600)
+    if result.returncode != 0:
+        raise RuntimeError(f"EBM download failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
+    print(result.stdout)
 
-    # Try to build the FAISS store
-    if build_script.exists():
-        try:
-            print("Attempting to build FAISS store from XML...")
-            subprocess.run([sys.executable, str(build_script), "--xml", str(DATA_XML), "--store", str(STORE_DIR)], check=True, timeout=600)
-            DATA_SOURCE_STATUS = "full"
-            return DATA_SOURCE_STATUS
-        except subprocess.CalledProcessError as e:
-            print("Build script failed with CalledProcessError:\n" + traceback.format_exc())
-            # If the build failed due to empty Fachgruppe 001, allow fallback to demo XML
-            # The build scripts raise ValueError in that case; detect it by inspecting output/exception
-            # Fallback: disable fachgruppe filter so demo XML (with 2 entries) can be used
-            print("Falling back to demo XML: disabling Fachgruppe-001 filter for this run.")
-            os.environ["SKIP_FG_FILTER"] = "1"
-            DATA_SOURCE_STATUS = "demo"
-            return DATA_SOURCE_STATUS
-        except Exception:
-            print("Build script failed:\n" + traceback.format_exc())
-            print("Falling back to demo XML: disabling Fachgruppe-001 filter for this run.")
-            os.environ["SKIP_FG_FILTER"] = "1"
-            DATA_SOURCE_STATUS = "demo"
-            return DATA_SOURCE_STATUS
-    else:
-        print("No build script found; continuing and relying on existing data/ebm.xml")
-        DATA_SOURCE_STATUS = "xml"
-        return DATA_SOURCE_STATUS
-
-    # Default
-    DATA_SOURCE_STATUS = "unknown"
+    # Build the FAISS store
+    if not build_script.exists():
+        raise RuntimeError(f"Build script not found: {build_script}")
+    
+    print("🔨 Building FAISS vector store from full EBM...")
+    result = subprocess.run(
+        [sys.executable, str(build_script), "--xml", str(DATA_XML), "--store", str(STORE_DIR)],
+        capture_output=True, text=True, timeout=1200
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"FAISS store build failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
+    print(result.stdout)
+    
+    print("✓ Vector store successfully created from full EBM.")
+    DATA_SOURCE_STATUS = "full"
     return DATA_SOURCE_STATUS
 
 
@@ -176,11 +161,17 @@ def browse_chapters() -> list[str]:
     return ["All"] + chapters
 
 def build_app() -> gr.Blocks:
-    # Ensure the vector store/download step has been attempted so browse_chapters sees correct data
+    # Enforce successful EBM download and vector store build at startup. Fail loudly if it fails.
+    print("\n" + "="*70)
+    print("STARTUP: Initializing EBM data and vector store...")
+    print("="*70)
     try:
         ensure_vector_store()
-    except Exception:
-        print("ensure_vector_store during UI build failed:\n" + traceback.format_exc())
+    except Exception as e:
+        error_msg = f"FATAL: Failed to prepare EBM data and vector store:\n{str(e)}"
+        print(error_msg)
+        raise RuntimeError(error_msg)
+    
     with gr.Blocks(
         theme=gr.themes.Soft(
             primary_hue="green",
@@ -200,18 +191,12 @@ def build_app() -> gr.Blocks:
         )
 
         # Data source status indicator
-        status_text = "Unbekannt"
+        status_text = "Vollständiges KBV EBM erfolgreich geladen und indexiert."
         if DATA_SOURCE_STATUS == "full":
-            status_text = "Datenquelle: Vollständiges KBV EBM (heruntergeladen und indexiert)."
+            status_text = "✓ Vollständiges KBV EBM (heruntergeladen und indexiert)."
         elif DATA_SOURCE_STATUS == "store":
-            status_text = "Datenquelle: Vorhandener Vektor-Store (lokal)."
-        elif DATA_SOURCE_STATUS == "xml":
-            status_text = "Datenquelle: Lokale XML-Datei (data/ebm.xml)."
-        elif DATA_SOURCE_STATUS == "demo":
-            status_text = "Datenquelle: Demo-XML verwendet (nur Beispiel-Einträge)."
-        else:
-            status_text = "Datenquelle: Unbekannt."
-
+            status_text = "✓ Vektor-Store wiederverwendet (aus vorherigem Durchlauf)."
+        
         gr.Markdown(f"**Status:** {status_text}")
 
         chapter_choices = browse_chapters()
