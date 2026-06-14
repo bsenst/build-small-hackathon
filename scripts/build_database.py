@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
 from src.chunking import dataframe_to_documents
 from src.embeddings import EmbeddingModel
-from src.parser import parse_ebm_xml_to_dataframe
+from src.parser import filter_df_by_fachgruppe, parse_ebm_xml_to_dataframe
 from src.vector_store import EbmVectorStore
 
 
@@ -21,6 +25,7 @@ def main() -> None:
     embedding_model = EmbeddingModel(args.model) if args.model else EmbeddingModel()
 
     df = parse_ebm_xml_to_dataframe(str(xml_path))
+    df = filter_df_by_fachgruppe(df)
     documents = dataframe_to_documents(df)
     store, embeddings = EbmVectorStore.build(documents, embedding_model=embedding_model)
     store.save(store_dir, embeddings=embeddings)

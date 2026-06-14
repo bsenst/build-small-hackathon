@@ -76,6 +76,17 @@ ebm-rag-trainer/
 
 ```bash
 python -m venv .venv
+```
+
+Linux / macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Windows:
+
+```powershell
 .venv\Scripts\activate
 ```
 
@@ -85,13 +96,25 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 3. Add the official EBM XML
+### 3. Add or download the official EBM XML
 
 Place the official XML file at:
 
 ```text
 data/ebm.xml
 ```
+
+Or download the full KBV EBM source and extract the XML automatically:
+
+```bash
+python scripts/download_full_ebm.py
+```
+
+This will write the extracted XML to `data/ebm.xml` and keep the archive in `data/SDEBM_V1.61.zip`.
+
+Die Daten stammen vom offiziellen KBV-Update unter https://update.kbv.de/ita-update/Stammdateien/SDEBM/ und werden hier lokal verarbeitet. Die App liest die XML-Datei ein, wandelt sie in strukturierte Datensätze um und erstellt daraus einen lokalen FAISS-Vektorstore. Anschließend nutzt die Anwendung diese lokal gespeicherten EBM-Daten für die Suche und Retrieval-basierte Antwortgenerierung. Weiterführende Informationen zum EBM finden Sie unter https://ebm.kbv.de/.
+
+Hinweis: Diese Funktion ist experimentell und es besteht keine Gewährleistung für Vollständigkeit oder Richtigkeit der Ausgaben. Die Anwendung ersetzt keine offizielle Abrechnungsauskunft.
 
 The repository includes a tiny demo XML so the codebase is runnable out of the box, but production use should replace it with the official current EBM source.
 

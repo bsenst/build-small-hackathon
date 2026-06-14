@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 from src.chunking import dataframe_to_search_corpus
-from src.parser import parse_ebm_xml_to_dataframe
+from src.parser import filter_df_by_fachgruppe, parse_ebm_xml_to_dataframe
 
 
 def main() -> None:
@@ -19,6 +23,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     df = parse_ebm_xml_to_dataframe(str(xml_path))
+    df = filter_df_by_fachgruppe(df)
     df.to_parquet(output_dir / "ebm.parquet", index=False)
     df.to_json(output_dir / "ebm.jsonl", orient="records", lines=True, force_ascii=False)
 

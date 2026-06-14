@@ -7,7 +7,7 @@ from src.chunking import dataframe_to_documents
 from src.embeddings import EmbeddingModel
 from src.model import load_generation_pipeline
 from src.prompts import ANSWER_PROMPT, CODE_EXPLANATION_PROMPT, NO_ANSWER_TEXT
-from src.parser import parse_ebm_xml_to_dataframe
+from src.parser import filter_df_by_fachgruppe, parse_ebm_xml_to_dataframe
 from src.retriever import EbmRetriever
 from src.vector_store import EbmVectorStore
 
@@ -133,6 +133,7 @@ def build_pipeline_from_paths(xml_path: str | Path, store_dir: str | Path, embed
         store = EbmVectorStore.load(store_dir)
     else:
         df = parse_ebm_xml_to_dataframe(str(xml_path))
+        df = filter_df_by_fachgruppe(df)
         documents = dataframe_to_documents(df)
         store, embeddings = EbmVectorStore.build(documents, embedding_model=embedding_model)
         store.save(store_dir, embeddings=embeddings)

@@ -107,3 +107,7 @@ def parse_ebm_xml_to_dataframe(xml_path: str) -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+
+def filter_df_by_fachgruppe(df: pd.DataFrame, fachgruppe: str = "001") -> pd.DataFrame:
+    return df[df["fachgruppen"].apply(lambda x: isinstance(x, list) and fachgruppe in x)].reset_index(drop=True)
+
