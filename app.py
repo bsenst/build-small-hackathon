@@ -233,7 +233,7 @@ def build_app() -> gr.Blocks:
         # Data source status indicator
         status_text = "Unbekannt"
         if DATA_SOURCE_STATUS == "full":
-            status_text = "✓ Vollständiges KBV EBM (heruntergeladen und indexiert)."
+            status_text = "✓ EBM Fachgruppe 001"
         elif DATA_SOURCE_STATUS == "store":
             status_text = "✓ Vektor-Store wiederverwendet (aus vorherigem Durchlauf)."
         elif DATA_SOURCE_STATUS == "demo":

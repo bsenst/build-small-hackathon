@@ -6,6 +6,8 @@ colorTo: blue
 sdk: gradio
 app_file: app.py
 pinned: false
+tags:
+  - track:backyard
 ---
 
 # EBM Mentor
@@ -37,12 +39,11 @@ flowchart LR
 
 ## Features
 
-- Free-form EBM question answering
-- Code explanation with structured metadata
-- Random quiz mode
-- Search and chapter browsing
-- Source citations and retrieved document viewer
-- Confidence score for retrieval results
+- **Interaktiver Chat**: Fragen zur EBM in natürlicher Sprache stellen.
+- **Quellennachweise**: Jede Antwort enthält die gefundenen EBM-Ziffern als Referenz.
+- **EBM Explorer**: Gezielte Suche nach Codes, Titeln und Kapiteln in tabellarischer Form.
+- **Automatische Datenbeschaffung**: Lädt beim ersten Start optional den aktuellen KBV-Datensatz herunter.
+- **Offline-Support**: Unterstützung für den Betrieb ohne Internetverbindung (lokaler Cache).
 
 ## Repository Layout
 
@@ -72,10 +73,11 @@ ebm-rag-trainer/
 
 ## Setup
 
-### 1. Create an environment
+### 1. Umgebung erstellen
 
 ```bash
 python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
 Linux / macOS:
@@ -146,17 +148,6 @@ python app.py
 - No external database
 - No paid APIs
 - Local FAISS index and local metadata files only
-
-## Example Screenshots
-
-Add screenshots here after deployment:
-
-```text
-docs/screenshots/ask-ebm.png
-docs/screenshots/explain-code.png
-docs/screenshots/quiz-mode.png
-docs/screenshots/explore-ebm.png
-```
 
 ## Sample Questions
 
