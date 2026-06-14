@@ -8,6 +8,7 @@ app_file: app.py
 pinned: false
 tags:
   - track:backyard
+  - achievement:offgrid
 ---
 
 # EBM Mentor
