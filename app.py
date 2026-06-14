@@ -127,6 +127,18 @@ body, .gradio-container {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
+.gradio-container,
+.gradio-container * {
+  color: var(--ink);
+}
+
+.gradio-container .prose,
+.gradio-container .prose *,
+.gradio-container .markdown,
+.gradio-container .markdown * {
+  color: var(--ink) !important;
+}
+
 .hero {
   background: linear-gradient(135deg, rgba(24,58,55,0.95), rgba(46,125,107,0.92));
   color: white;
@@ -155,15 +167,52 @@ body, .gradio-container {
   box-shadow: 0 10px 30px rgba(24,58,55,0.08);
 }
 
+.card * {
+  color: var(--ink);
+}
+
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select,
+.gradio-container .wrap,
+.gradio-container .block,
+.gradio-container .table,
+.gradio-container .table *,
+.gradio-container .dataframe,
+.gradio-container .dataframe *,
+.gradio-container .tab-nav button {
+  color: var(--ink) !important;
+}
+
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(24, 58, 55, 0.18) !important;
+}
+
+.gradio-container .tab-nav button.selected,
+.gradio-container .tab-nav button[aria-selected="true"] {
+  color: white !important;
+}
+
 .gr-button-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
   border: none !important;
+  color: white !important;
 }
 """
 
 
 def build_app() -> gr.Blocks:
-    with gr.Blocks(css=CSS, theme=gr.themes.Base()) as demo:
+    with gr.Blocks(
+        css=CSS,
+        theme=gr.themes.Soft(
+            primary_hue="green",
+            secondary_hue="slate",
+            neutral_hue="slate",
+        ),
+    ) as demo:
         gr.HTML(
             """
             <div class="hero">
