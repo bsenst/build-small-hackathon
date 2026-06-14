@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehd:root xmlns:ehd="urn:ehd/001" xmlns:go="urn:ehd/go/001">
+  <ehd:body>
+    <go:gnr_liste>
+      <go:gnr V="01100" USE="1" VT="20240101">
+        <go:allgemein>
+          <go:legende>
+            <go:kurztext V="Unvorhergesehene Inanspruchnahme I"/>
+            <go:quittungstext V="Unvorhergesehene Inanspruchnahme I"/>
+            <go:langtext>Notdienstliche Erstversorgung und kurzfristige Inanspruchnahme außerhalb der regulären Sprechzeiten.</go:langtext>
+            <go:kap_bez V="01" DN="Allgemeine Leistungen">
+              <go:bereich DN="Allgemeinmedizin"/>
+              <go:kapitel DN="Hausärztliche Versorgung"/>
+              <go:abschnitt DN="Unvorhergesehene Inanspruchnahme"/>
+            </go:kap_bez>
+          </go:legende>
+          <go:anmerkungen_liste>
+            <go:anmerkung>Nur einmal je Behandlungstag berechnungsfähig.</go:anmerkung>
+          </go:anmerkungen_liste>
+          <go:bewertung_liste>
+            <go:bewertung V="196" U="PUNKTE">
+              <go:leistung_typ V="GKV"/>
+            </go:bewertung>
+          </go:bewertung_liste>
+        </go:allgemein>
+        <go:regel>
+          <go:ausschluss_liste>
+            <go:bezugsraum>
+              <go:gnr_liste>
+                <go:gnr V="01101" DN="Unvorhergesehene Inanspruchnahme II"/>
+                <go:gnr V="01200" DN="Weitere Inanspruchnahme"/>
+              </go:gnr_liste>
+            </go:bezugsraum>
+          </go:ausschluss_liste>
+        </go:regel>
+        <go:vdx>
+          <go:gkv_kontenart_liste>
+            <go:gkv_kontenart V="A"/>
+            <go:gkv_kontenart V="B"/>
+          </go:gkv_kontenart_liste>
+        </go:vdx>
+      </go:gnr>
+      <go:gnr V="01732" USE="1" VT="20240101">
+        <go:allgemein>
+          <go:legende>
+            <go:kurztext V="Gesundheitsuntersuchung"/>
+            <go:quittungstext V="Gesundheitsuntersuchung"/>
+            <go:langtext>Vorsorgeorientierte Untersuchung bei asymptomatischen Patienten.</go:langtext>
+            <go:kap_bez V="02" DN="Vorsorgeleistungen">
+              <go:bereich DN="Prävention"/>
+              <go:kapitel DN="Vorsorge"/>
+              <go:abschnitt DN="Gesundheitsuntersuchungen"/>
+            </go:kap_bez>
+          </go:legende>
+          <go:anmerkungen_liste>
+            <go:anmerkung>Einmal innerhalb definierter Fristen abrechenbar.</go:anmerkung>
+          </go:anmerkungen_liste>
+          <go:bewertung_liste>
+            <go:bewertung V="300" U="PUNKTE">
+              <go:leistung_typ V="GKV"/>
+            </go:bewertung>
+          </go:bewertung_liste>
+        </go:allgemein>
+        <go:regel>
+          <go:ausschluss_liste>
+            <go:bezugsraum>
+              <go:gnr_liste>
+                <go:gnr V="01733" DN="Weiteres Vorsorgepaket"/>
+              </go:gnr_liste>
+            </go:bezugsraum>
+          </go:ausschluss_liste>
+        </go:regel>
+        <go:vdx>
+          <go:gkv_kontenart_liste>
+            <go:gkv_kontenart V="A"/>
+          </go:gkv_kontenart_liste>
+        </go:vdx>
+      </go:gnr>
+    </go:gnr_liste>
+  </ehd:body>
+</ehd:root>
+
